@@ -41,23 +41,36 @@ Or, specify 1 hour as follows:
 
 ## Config File
 
-The config file contains JSON describing the characteristics of the workload you want to simulate. The config file has the following format:
+The config file contains JSON describing the characteristics of the workload you want to simulate.
+A workload consists of a state machine, where each state outputs a record.
+The state machine is probabilistic, which means that the state transitions may be stochastic based on probabilities.
+Each state in the state machine performs three operations:
+- First, the state emits a record (based on an emitter description)
+- The state delays for some period of time (based on a distribution)
+- Finally, the state selects and transitions to a different state (based on a probabilistic transition table)
+
+Emitters are record generators that output records as specified in the emitter description.
+Each state employs a single emitter, but the same emitter may be used by many states.
+
+The config file has the following format:
 
 ```
 {
   "target": {...},
-  "rate": {...},
-  "dimensions": [...]
+  "emitters": [...],
+  "interarrival": {...}
+  "states": [...]
 }
 ```
 
 The _target_ object describes the output destination.
-The _rate_ object describes the desired record generation rate.
-The _dimensions_ list indicates the dimension each record should contain.
+The _emitters_ list is a list of record generators.
+The _interarrival_ object describes the inter-arrival times (i.e., inverse of the arrival rate) of entities to the state machine
+The _states_ list is a description of the state machine
 
 ### Distribution descriptor objects
 
-Use _distribution descriptor objects_ to parameterize various characteristics of the config file (e.g., interarrival times, dimension values, etc.) according to the config file syntax described in this document.
+Use _distribution descriptor objects_ to parameterize various characteristics of the config file (e.g., inter-arrival times, dimension values, etc.) according to the config file syntax described in this document.
 
 There are four types of _distribution descriptor objects_: Constant, Uniform, Exponential and Normal. Here are the formats of each of these types:
 
@@ -101,7 +114,7 @@ Exponenital distributions generate values following an exponential distribution 
 }
 ```
 
-Where _mean_ is the resutling average value of the distribution.
+Where _mean_ is the resulting average value of the distribution.
 
 #### Normal distribution
 
@@ -109,7 +122,7 @@ Normal distributions generate values with a normal (i.e., bell-shaped) distribut
 
 ```
 {
-  "type": "exponential",
+  "type": "normal",
   "mean": <value>,
   "stddev": <value>
 }
@@ -153,31 +166,45 @@ _kafka_ targets write records to a Kafka topic and have this format:
 }
 ```
 
+### "emitters": []
 
-### "rate":{}
+The _emitters_ list is a list of record generators.
+Each emitter has a name and a list of dimensions, where the list of dimensions describes the records the emitter will generate.
 
-The rate object is a _distribution descriptor object_ that describes the interarrival times (in seconds) between records that the driver generates.
+An example of an emitter list looks as follows:
 
-One can calculate the mean interarrival time by dividing a period of time by the number of records to generate during the time period. For example, 100 records per hour has an interarrival time of 36 seconds (1 hour * 60 minutes/hour * 60 seconds/minute / 100 records).
+```
+"emitters": [
+  {
+    "name": "short-record",
+    "dimensions": [...]
+  },
+  {
+    "name": "long-record",
+    "dimensions": [...]
+  }
+]
+```
 
-See the previous section on _Distribution descriptor objects_ for the syntax.
+#### "dimensions": []
 
-### "dimensions": []
+The _dimensions_ list contains specifications for all dimensions (except the <i>__time</i> dimension, which is always the first dimension in the output record specified in UTC ISO 8601 format, and has the value of when the record is actually generated).
 
-The _dimensions_ list contains specifications for all dimensions (except the <i>__time</i> dimension, which is always the first dimenstion in the output record specified in UTC ISO 8601 format, and has the value of when the record is actually generated).
+##### Cardinality
 
-#### Cardinality
-
-All dimension types may include a _Cardinality_.
+Many dimension types may include a _Cardinality_ (the one exception is the _enum_ dimension type).
 Cardinality defines how many unique values the driver may generate.
 Setting _cardinality_ to 0 provides no constraint to the number of unique values.
 But, setting _cardinality_ > 0 causes the driver to create a list of values, and the length of the list is the value of _cardinality_.
 
-When _cardinality_ is greater than 0, _cardinality_distribution_ informs how the driver selects items from the cardinality list.
-We can think of the cardinality list as a list with zero-based indexing, and the _cardinality_distribution_ determines how the driver will select an index into the cardinality list.
-After using the _cardinality_distribution_ to produce an index, the driver constrains the index so as to be a valid value (i.e., 0 >= index < length of cardinality list).
+When _cardinality_ is greater than 0, <i>cardinality_distribution</i> informs how the driver selects items from the cardinality list.
+We can think of the cardinality list as a list with zero-based indexing, and the <i>cardinality_distribution</i> determines how the driver will select an index into the cardinality list.
+After using the <i>cardinality_distribution</i> to produce an index, the driver constrains the index so as to be a valid value (i.e., 0 <= index < length of cardinality list).
+Therefore,
+Note that while _uniform_ and _normal_ distributions make sense to use as distribution specifications, _constant_ distribution only make sense cardinality contains a single value.
+Further, for cardinality > 0, avoid an _exponential_ distribution as it will round down any values that are too large and produces a distorted distribution.
 
-As an example, imagine the following String element definition:
+As an example of cardinality, imagine the following String element definition:
 
 ```
 {
@@ -194,11 +221,31 @@ This defines a String element named Str1 with five unique values that are three 
 The driver will select from these five unique values uniformly (by selecting indices in the range of [0,4]).
 All values may only consist of strings containing the letters a-g.
 
-#### Dimension list item types
+##### Dimension list item types
 
 Dimension list entries include:
 
-##### { "type": "string" ...}
+###### { "type": "enum" ...}
+
+Enum dimensions specify the set of all possible dimension values, as well as a distribution for selecting from the set.
+Enums have the following format:
+
+```
+{
+  "type": "enum",
+  "name": "<dimension name>",
+  "values": [...],
+  "cardinality_distribution": <distribution descriptor object>
+}
+```
+
+Where:
+- <i>name</i> is the name of the dimension
+- <i>values</i> is a list of the values
+- <i>cardinality_distribution</i> informs the cardinality selection of the generated values (omit if cardinality is zero)
+
+
+###### { "type": "string" ...}
 
 String dimension speficiation entries have the following format:
 
@@ -216,7 +263,7 @@ String dimension speficiation entries have the following format:
 Where:
 - <i>name</i> is the name of the dimension
 - <i>length_distribution</i> describes the length of the string values - Some distribution configurations may result in zero-length strings
-- <i>cardinality</i> indicates the number of unique values for this diemnsion (zero for unconstrained cardinality)
+- <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> informs the cardinality selection of the generated values (omit if cardinality is zero)
 - <i>chars</i> (optional) is a list (e.g., "ABC123") of characters that may be used to generate strings - if not specified, all printable characters will be used
 
@@ -240,7 +287,7 @@ Where:
 - <i>cardinality</i> indicates the number of unique values for this diemnsion (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated values
 
-##### { "type": "float" ...}
+###### { "type": "float" ...}
 
 Float dimension specification entries have the following format:
 
@@ -260,7 +307,7 @@ Where:
 - <i>cardinality</i> indicates the number of unique values for this diemnsion (zero for unconstrained cardinality)
 - <i>cardinality_distribution</i> skews the cardinality selection of the generated values
 
-##### { "type": "timestamp" ...}
+###### { "type": "timestamp" ...}
 
 Timestamp dimension specification entries have the following format:
 
@@ -282,3 +329,61 @@ Where:
 
 
 Note that if _distribution_ type is Normal, express _stddev_ in seconds.
+
+### "interarrival":{}
+
+The _interarrival_ object is a _distribution descriptor object_ that describes the inter-arrival times (in seconds) between records that the driver generates.
+
+One can calculate the mean inter-arrival time by dividing a period of time by the number of records to generate during the time period. For example, 100 records per hour has an inter-arrival time of 36 seconds per record (1 hour * 60 minutes/hour * 60 seconds/minute / 100 records).
+
+See the previous section on _Distribution descriptor objects_ for the syntax.
+
+### "states": []
+
+The _states_ list is a list of state object.
+These state objects describe each of the states in a probabilistic state machine.
+
+#### State objects
+
+State objects have the following form:
+
+```
+{
+  "name": <state name>,
+  "emitter": <emitter name>,
+  "delay": <distribution descriptor object>,
+  "transitions": [...]
+}
+```
+
+Where:
+- <i>name</i> is the name of the state
+- <i>emitter</i> is the name of the emitter this state will use to generate a record
+- <i>delay</i> a distribution function indicating how long (in seconds) to remain in the state before transitioning
+- <i>transitions</i> is a list of transition objects specifying possible transitions from this state to the next state
+
+##### Transition Objects
+
+Transition objects describe potential state transitions from the current state to the next state.
+These objects have the following form:
+
+```
+{
+  "next": <state name>,
+  "probability": <probability value>
+}
+```
+
+Where:
+
+- <i>next</i> is the name of the next state
+- <i>probability</i> is a value greater than zero and less than or equal to one.
+
+Note that the sum of probabilities of all probabilities in the _transitions_ list must add up to one.
+Use:
+
+```
+"next": "stop",
+```
+
+to transition to a terminal state.
