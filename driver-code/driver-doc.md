@@ -8,17 +8,22 @@ The script uses this config file to generate JSON records.
 
 Run the program as follows:
 
-```python DruidDataDriver.py <config file name> <options>```
+```python DruidDataDriver.py <options>```
 
 Options include:
 
 ```
+-f <configuration file name>
 -n <total number of records to generate>
 -t <duration for generating records>
 ```
 
-The options control how long the script runs.
-If no options are present, the script will run indefinitely.
+Use the _-f_ option to designate a configuration file name.
+If you omit the _-f_ option, the script reads the configuration from _stdin_.
+
+
+The other two options control how long the script runs.
+If neither option is present, the script will run indefinitely.
 The _-t_ and _-n_ options are exclusive (use one or the other).
 Time durations may be specified in terms of seconds, minutes or hours.
 For example, specify 30 seconds as follows:

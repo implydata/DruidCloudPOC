@@ -36,7 +36,8 @@ import time
 #
 
 parser = argparse.ArgumentParser(description='Generates JSON records as a workload for Apache Druid.')
-parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
+#parser.add_argument('config_file', metavar='<config file name>', help='the workload config file name')
+parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
 parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
 parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
 
@@ -44,6 +45,7 @@ args = parser.parse_args()
 
 config_file_name = args.config_file
 runtime = args.time
+total_recs = None
 if args.n_recs is not None:
     total_recs = int(args.n_recs)
 
@@ -53,8 +55,11 @@ if (runtime is not None) and (total_recs is not None):
     exit()
 
 
-with open(config_file_name, 'r') as f:
-    config = json.load(f)
+if config_file_name:
+    with open(config_file_name, 'r') as f:
+        config = json.load(f)
+else:
+    config = json.load(sys.stdin)
 
 #
 # Set up the target
