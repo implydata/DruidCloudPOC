@@ -3,7 +3,7 @@
 #
 
 import argparse
-from dateutil import parser
+import dateutil.parser
 from datetime import datetime
 import json
 from kafka import KafkaProducer
@@ -185,17 +185,17 @@ def parse_timestamp_distribution(desc):
     dist_type = desc['type'].lower()
     dist_gen = None
     if dist_type == 'constant':
-        value = parser.isoparse(desc['value']).timestamp()
+        value = dateutil.parser.isoparse(desc['value']).timestamp()
         dist_gen = DistConstant(value)
     elif dist_type == 'uniform':
-        min_value = parser.isoparse(desc['min']).timestamp()
-        max_value = parser.isoparse(desc['max']).timestamp()
+        min_value = dateutil.parser.isoparse(desc['min']).timestamp()
+        max_value = dateutil.parser.isoparse(desc['max']).timestamp()
         dist_gen = DistUniform(min_value, max_value)
     elif dist_type == 'exponential':
-        mean = parser.isoparse(desc['mean']).timestamp()
+        mean = dateutil.parser.isoparse(desc['mean']).timestamp()
         dist_gen = DistExponential(mean)
     elif dist_type == 'normal':
-        mean = desc[parser.isoparse(desc['mean']).timestamp()]
+        mean = desc[dateutil.parser.isoparse(desc['mean']).timestamp()]
         stddev = desc['stddev']
         dist_gen = DistNormal(mean, stddev)
     else:
@@ -215,7 +215,7 @@ rate_delay = parse_distribution(rate)
 #
 # Set up the dimensions for the emitters (see below)
 # There is one element class for each dimension type. This code creates a list of
-# elements and then runs throught the list to create a single record.
+# elements and then runs through the list to create a single record.
 # Notice that the get_json_field_string() method produces the JSON dimension
 # field object based on the dimension configuration.
 # The get_stochastic_value() method is like a private method used to get a random
@@ -241,14 +241,29 @@ class ElementEnum: # enumeration dimensions
     def __str__(self):
         return 'ElementEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
-    def get_json_field_string(self):
+    def get_stochastic_value(self):
         index = int(self.cardinality_distribution.get_sample())
         if index < 0:
             index = 0
         if index >= len(self.cardinality):
             index = len(self.cardinality)-1
-        value = self.cardinality[index]
+        return self.cardinality[index]
+
+    def get_json_field_string(self):
+        return '{"name": "'+self.name+'", "value": "'+str(self.get_stochastic_value())+'"}'
+
+class ElementVariable: # Variable dimensions
+    def __init__(self, desc):
+        self.name = desc['name']
+        self.variable_name = desc['variable']
+
+    def __str__(self):
+        return 'ElementVariable(name='+self.name+', value='+self.variable_name+')'
+
+    def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
+        value = variables[self.variable_name]
         return '{"name": "'+self.name+'", "value": '+str(value)+'}'
+
 
 class ElementBase: # Base class for the remainder of the dimensions
     def __init__(self, desc):
@@ -365,25 +380,50 @@ class ElementTimestamp(ElementBase):
     def get_stochastic_value(self):
         return datetime.fromtimestamp(self.value_distribution.get_sample())
 
+class ElementIPAddress(ElementBase):
+    def __init__(self, desc):
+        self.value_distribution = parse_distribution(desc['distribution'])
+        super().__init__(desc)
 
+    def __str__(self):
+        return 'ElementIPAddress(name='+self.name+', value_distribution='+sstr(elf.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+
+    def get_stochastic_value(self):
+        value = int(self.value_distribution.get_sample())
+        return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
+
+
+def parse_element(desc):
+    if desc['type'].lower() == 'enum':
+        el = ElementEnum(desc)
+    elif desc['type'].lower() == 'string':
+        el = ElementString(desc)
+    elif desc['type'].lower() == 'int':
+        el = ElementInt(desc)
+    elif desc['type'].lower() == 'float':
+        el = ElementFloat(desc)
+    elif desc['type'].lower() == 'timestamp':
+        el = ElementTimestamp(desc)
+    elif desc['type'].lower() == 'ipaddress':
+        el = ElementIPAddress(desc)
+    elif desc['type'].lower() == 'variable':
+        el = ElementVariable(desc)
+    else:
+        print('Error: Unknown dimension type "'+desc['type']+'"')
+        exit()
+    return el
+
+
+def get_variables(desc):
+    elements = []
+    for element in desc:
+        el = parse_element(element)
+        elements.append(el)
+    return elements
 
 def get_dimensions(desc):
-    elements = [ElementNow()]
-    for element in desc:
-        if element['type'].lower() == 'enum':
-            el = ElementEnum(element)
-        elif element['type'].lower() == 'string':
-            el = ElementString(element)
-        elif element['type'].lower() == 'int':
-            el = ElementLong(element)
-        elif element['type'].lower() == 'float':
-            el = ElementFloat(element)
-        elif element['type'].lower() == 'timestamp':
-            el = ElementTimestamp(element)
-        else:
-            print('Error: Unknown dimension type "'+element['type']+'"')
-            exit()
-        elements.append(el)
+    elements = get_variables(desc)
+    elements.insert(0, ElementNow())
     return elements
 
 #
@@ -419,15 +459,16 @@ def parse_transitions(desc):
     return transitions
 
 class State:
-    def __init__(self, name, dimensions, delay, transistions):
+    def __init__(self, name, dimensions, delay, transistions, variables):
         self.name = name
         self.dimensions = dimensions
         self.delay = delay
         self.transistion_states = [t.next_state for t in transitions]
         self.transistion_probabilities = [t.probability for t in transitions]
+        self.variables = variables
 
     def __str__(self):
-        return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+')'
+        return 'State(name='+self.name+', dimensions='+str([str(d) for d in self.dimensions])+', delay='+str(self.delay)+', transistion_states='+str(self.transistion_states)+', transistion_probabilities='+str(self.transistion_probabilities)+'variables='+str([str(v) for v in self.variables])+')'
 
     def get_next_state_name(self):
         return random.choices(self.transistion_states, weights=self.transistion_probabilities, k=1)[0]
@@ -435,16 +476,21 @@ class State:
     def visit_state(self):
         create_record(self.emitter)
 
+
 state_desc = config['states']
 initial_state = None
 states = {}
 for state in state_desc:
     name = state['name']
     emitter_name = state['emitter']
+    if 'variables' not in state.keys():
+        variables = []
+    else:
+        variables = get_variables(state['variables'])
     dimensions = emitters[emitter_name]
     delay = parse_distribution(state['delay'])
     transitions = parse_transitions(state['transitions'])
-    this_state = State(name, dimensions, delay, transitions)
+    this_state = State(name, dimensions, delay, transitions, variables)
     states[name] = this_state
     if initial_state == None:
         initial_state = this_state
@@ -457,14 +503,21 @@ for state in state_desc:
 
 record_count = 0
 
-def create_record(dimensions):
+def create_record(dimensions, variables):
     json_string = '['
     for element in dimensions:
-        json_string += element.get_json_field_string() + ','
+        if isinstance(element, ElementVariable):
+            json_string += element.get_json_field_string(variables) + ','
+        else:
+            json_string += element.get_json_field_string() + ','
     json_string = json_string[:-1] + ']'
     return json_string
 
 thread_end_event = threading.Event()
+
+def set_variable_values(variables, dimensions):
+    for d in dimensions:
+        variables[d.name] = d.get_stochastic_value()
 
 def worker_thread(target_printer, states, initial_state):
     # Process the state machine using worker threads
@@ -472,8 +525,10 @@ def worker_thread(target_printer, states, initial_state):
     global total_recs
     global thread_end_event
     current_state = initial_state
+    variables = {}
     while True:
-        record = create_record(current_state.dimensions)
+        set_variable_values(variables, current_state.variables)
+        record = create_record(current_state.dimensions, variables)
         target_printer.print(record)
         record_count += 1
         if total_recs is not None and record_count >= total_recs:
@@ -492,8 +547,8 @@ def spawning_thread(target_printer, rate_delay, states, initial_state):
         t.start()
         time.sleep(float(rate_delay.get_sample()))
 
-t = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), daemon=True)
-t.start()
+thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), daemon=True)
+thrd.start()
 
 if runtime is not None:
     if runtime[-1].lower() == 's':
