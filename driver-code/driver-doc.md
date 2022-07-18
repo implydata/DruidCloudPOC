@@ -326,7 +326,7 @@ Timestamp dimension specification entries have the following format:
 }
 ```
 
-Where:
+Where: 
 - <i>name</i> is the name of the dimension
 - <i>distribution</i> describes the distribution of timestamp values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
