@@ -85,14 +85,14 @@ class PrintFile:
 class PrintKafka:
     producer = None
     topic = None
-    def __init(self, endpoint, topic):
+    def __init__(self, endpoint, topic):
         self.endpoint = endpoint
-        self.producer = KafkaProducer(bootstrap_servers=endpoint)
+        self.producer = KafkaProducer(bootstrap_servers=endpoint, value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.topic = topic
     def __str__(self):
         return 'PrintKafka(endpoint='+self.endpoint+', topic='+self.topic+')'
     def print(self, record):
-        self.producer.send(self.topic, str(record))
+        self.producer.send(self.topic, json.loads(str(record)))
 
 target = config['target']
 
