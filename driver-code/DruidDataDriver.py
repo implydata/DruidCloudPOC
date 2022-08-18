@@ -227,7 +227,7 @@ class ElementNow: # The __time dimension
         return 'ElementNow()'
     def get_json_field_string(self):
         now = datetime.now().isoformat()
-        return '{"name": "__time", "value": "'+now+'"}'
+        return '"__time":"'+now+'"'
 
 class ElementEnum: # enumeration dimensions
     def __init__(self, desc):
@@ -250,7 +250,7 @@ class ElementEnum: # enumeration dimensions
         return self.cardinality[index]
 
     def get_json_field_string(self):
-        return '{"name": "'+self.name+'", "value": "'+str(self.get_stochastic_value())+'"}'
+        return '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
 
 class ElementVariable: # Variable dimensions
     def __init__(self, desc):
@@ -262,7 +262,7 @@ class ElementVariable: # Variable dimensions
 
     def get_json_field_string(self, variables): # NOTE: because of timing, this method has a different signature than the other elements
         value = variables[self.variable_name]
-        return '{"name": "'+self.name+'", "value": '+str(value)+'}'
+        return '"'+self.name+'":"'+str(value)+'"'
 
 
 class ElementBase: # Base class for the remainder of the dimensions
@@ -299,7 +299,7 @@ class ElementBase: # Base class for the remainder of the dimensions
             if index >= len(self.cardinality):
                 index = len(self.cardinality)-1
             value = self.cardinality[index]
-        return '{"name": "'+self.name+'", "value": '+str(value)+'}'
+        return '"'+self.name+'":'+str(value)
 
 
 class ElementString(ElementBase):
@@ -328,7 +328,7 @@ class ElementString(ElementBase):
             if index >= len(self.cardinality):
                 index = len(self.cardinality)-1
             value = self.cardinality[index]
-        return '{"name": "'+self.name+'", "value": "'+str(value)+'"}'
+        return '"'+self.name+'":"'+str(value)+'"'
 
 class ElementInt(ElementBase):
     def __init__(self, desc):
@@ -378,7 +378,19 @@ class ElementTimestamp(ElementBase):
         return 'ElementTimestamp(name='+self.name+', value_distribution='+sstr(elf.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return datetime.fromtimestamp(self.value_distribution.get_sample())
+        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
+
+    def get_json_field_string(self):
+        if self.cardinality is None:
+            value = self.get_stochastic_value()
+        else:
+            index = int(self.cardinality_distribution.get_sample())
+            if index < 0:
+                index = 0
+            if index >= len(self.cardinality):
+                index = len(self.cardinality)-1
+            value = self.cardinality[index]
+        return '"'+self.name+'":"'+str(value)+'"'
 
 class ElementIPAddress(ElementBase):
     def __init__(self, desc):
@@ -504,13 +516,13 @@ for state in state_desc:
 record_count = 0
 
 def create_record(dimensions, variables):
-    json_string = '['
+    json_string = '{'
     for element in dimensions:
         if isinstance(element, ElementVariable):
             json_string += element.get_json_field_string(variables) + ','
         else:
             json_string += element.get_json_field_string() + ','
-    json_string = json_string[:-1] + ']'
+    json_string = json_string[:-1] + '}'
     return json_string
 
 thread_end_event = threading.Event()
