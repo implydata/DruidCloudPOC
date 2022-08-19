@@ -59,7 +59,8 @@
             "mean": 10
           },
           "cardinality": 0
-        }      ],
+        }
+     ],
       "delay": {
         "type": "constant",
         "value": 1
