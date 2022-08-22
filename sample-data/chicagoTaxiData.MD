@@ -20,7 +20,7 @@ something something something darkside
 
 ### What's in the data?
 
-There are two timestamps to choose from - see [Timestamp](#timestamp) below.
+There are two timestamps to choose from - see [Timestamps](#timestamps) below.
 
 #### Attributes
 
@@ -71,7 +71,7 @@ Ingest all the measures as `float` - all the rest can be kept as `string`.
 
 ### Transforms
 
-As noted in [Timestamp](#timestamp) above, the dataset contains two timestamps.  Whichever you decide to use, remember to include the resulting field of your transformation as a `long` in the `dimensionsSpec`.
+As noted in [Timestamps](#timestamps) above, the dataset contains two timestamps.  Whichever you decide to use, remember to include the resulting field of your transformation as a `long` in the `dimensionsSpec`.
 
 If using the `Trip Start Timestamp` for `__time`, use the transformation below to convert the `Trip End Timestamp` into a `long`.
 
