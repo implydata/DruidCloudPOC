@@ -1,12 +1,10 @@
 # Chicago Taxi Data
 
-## What is it?
-
 Contains a large volume of Taxi Data for Chicago.
 
 See https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew for the metadata.
 
-## Source
+## Download
 
 Download the data set from:
 
@@ -18,9 +16,47 @@ Note that you may need to split the CSV files up using a command like this:
 something something something darkside
 ```
 
-## Specification
+## Ingesting the data
 
-### Timestamp
+### What's in the data?
+
+There are two timestamps to choose from - see [Timestamp](#timestamp) below.
+
+#### Attributes
+
+Attributes describe the taxi:
+
+* Taxi Id
+* Company
+
+And the journey:
+
+* Payment Type
+* Dropoff Census Tract
+* Pickup Census Tract
+* Dropoff Community Area
+* Pickup Community Area
+
+#### Measures
+
+Some measures for each trip are financial:
+
+* Fare
+* Extras
+* Tips
+* Tolls
+* Trip Total
+
+And others are about the trip itself:
+
+* Trip Miles
+* Trip Seconds
+
+### Timestamps
+
+The data contains a `Trip Start Timestamp` that you can use for `__time`.
+
+Alternatively, apply the RADStack paper principle that event data is "about [when the event occured](http://static.druid.io/docs/radstack.pdf)" by using the `End Timestamp` as your `__time` field value, as follows:
 
 ```
 "timestampSpec": {
@@ -29,7 +65,30 @@ something something something darkside
       }
 ```
 
+### Dimensions
+
+Ingest all the measures as `float` - all the rest can be kept as `string`.
+
 ### Transforms
+
+As noted in [Timestamp](#timestamp) above, the dataset contains two timestamps.  Whichever you decide to use, remember to include the resulting field of your transformation as a `long` in the `dimensionsSpec`.
+
+If using the `Trip Start Timestamp` for `__time`, use the transformation below to convert the `Trip End Timestamp` into a `long`.
+
+```
+"transformSpec": {
+        "filter": null,
+        "transforms": [
+          {
+            "type": "expression",
+            "name": "__time_end_long",
+            "expression": "timestamp_parse(\"Trip End Timestamp\",'MM/dd/yyyy hh:mm:ss a')"
+          }
+        ]
+      }
+```
+
+Alternatively, use the following to do the same but to the `Trip Start Timestamp`:
 
 ```
 "transformSpec": {
@@ -38,107 +97,10 @@ something something something darkside
           {
             "type": "expression",
             "name": "__time_start_long",
-            "expression": "timestamp_parse(\"Trip End Timestamp\",'MM/dd/yyyy hh:mm:ss a')"
+            "expression": "timestamp_parse(\"Trip Start Timestamp\",'MM/dd/yyyy hh:mm:ss a')"
           }
         ]
       }
 ```
 
-### Dimensions
-
-```
-"dimensionsSpec": {
-        "dimensions": [
-          {
-            "type": "string",
-            "name": "Company",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": true
-          },
-          {
-            "type": "string",
-            "name": "Payment Type",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": true
-          },
-          {
-            "type": "string",
-            "name": "Dropoff Census Tract",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": true
-          },
-          {
-            "type": "long",
-            "name": "Pickup Census Tract",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "string",
-            "name": "Dropoff Community Area",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": true
-          },
-          {
-            "type": "long",
-            "name": "Pickup Community Area",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Extras",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Fare",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Tips",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Tolls",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Trip Miles",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "float",
-            "name": "Trip Seconds",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "long",
-            "name": "Trip Total",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "long",
-            "name": "__time_start_long",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": false
-          },
-          {
-            "type": "string",
-            "name": "Taxi ID",
-            "multiValueHandling": "SORTED_ARRAY",
-            "createBitmapIndex": true
-          }
-        ]
-      },
-```
+It's also possible to dereference the codes in `Community Area` to actual names using the Community Area Lookup at ingestion time.
