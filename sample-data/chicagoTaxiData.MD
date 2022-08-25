@@ -10,10 +10,28 @@ Download the data set from:
 
 * https://data.cityofchicago.org/api/views/wrvz-psew/rows.csv?accessType=DOWNLOAD
 
-Note that you may need to split the CSV files up using a command like this:
+Note that you may need to split the CSV files up using a command like this, which will create files of `-l` size out of the `splitme.csv` file.
 
 ```
-something something something darkside
+#!/bin/bash
+echo Splitting splitme.csv
+echo Generating header...
+head -n 1 splitme.csv > header.csv
+echo Removing old splits...
+rm part-*.csv
+rm part-*
+echo Splitting files...
+split -a 4 -l 500000 splitme.csv part-
+echo Creating new CSV files...
+for i in part-*
+do
+  echo Working on $i...
+  cp header.csv working.csv
+  cat "$i" >> working.csv
+  mv working.csv "$i.csv"
+  rm "$i"
+done
+echo Done.
 ```
 
 ## Ingesting the data
