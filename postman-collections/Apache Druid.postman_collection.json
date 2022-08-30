@@ -1,0 +1,2282 @@
+{
+	"info": {
+		"_postman_id": "3c43e082-e6c8-45fc-bed5-4b780622fc31",
+		"name": "Apache Druid",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9787"
+	},
+	"item": [
+		{
+			"name": "Monitoring Health",
+			"item": [
+				{
+					"name": "Status Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{endpoint-coordinator}}/status/health",
+							"host": [
+								"{{endpoint-coordinator}}"
+							],
+							"path": [
+								"status",
+								"health"
+							]
+						},
+						"description": "An endpoint that always returns a boolean \"true\" value with a 200 OK response, useful for automated health checks."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Monitoring Configuration",
+			"item": [
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{endpoint-coordinator}}/status",
+							"host": [
+								"{{endpoint-coordinator}}"
+							],
+							"path": [
+								"status"
+							]
+						},
+						"description": "Returns the Druid version, loaded extentions, memory used, total memory and other useful information about the process."
+					},
+					"response": []
+				},
+				{
+					"name": "Status Properties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{endpoint-coordinator}}/status/properties",
+							"host": [
+								"{{endpoint-coordinator}}"
+							],
+							"path": [
+								"status",
+								"properties"
+							]
+						},
+						"description": "Returns the current configuration properties of the process."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Monitoring Discovery",
+			"item": [
+				{
+					"name": "Discovery Status (Bool)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{endpoint-coordinator}}/status/selfDiscovered/status",
+							"host": [
+								"{{endpoint-coordinator}}"
+							],
+							"path": [
+								"status",
+								"selfDiscovered",
+								"status"
+							]
+						},
+						"description": "Returns a JSON map of the form {\"selfDiscovered\": true/false}, indicating whether the node has received a confirmation from the central node discovery mechanism (currently ZooKeeper) of the Druid cluster that the node has been added to the cluster. It is recommended to not consider a Druid node \"healthy\" or \"ready\" in automated deployment/container management systems until it returns {\"selfDiscovered\": true} from this endpoint. This is because a node may be isolated from the rest of the cluster due to network issues and it doesn't make sense to consider nodes \"healthy\" in this case. Also, when nodes such as Brokers use ZooKeeper segment discovery for building their view of the Druid cluster (as opposed to HTTP segment discovery), they may be unusable until the ZooKeeper client is fully initialized and starts to receive data from the ZooKeeper cluster. {\"selfDiscovered\": true} is a proxy event indicating that the ZooKeeper client on the node has started to receive data from the ZooKeeper cluster and it's expected that all segments and other nodes will be discovered by this node timely from this point."
+					},
+					"response": []
+				},
+				{
+					"name": "Discovery Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{endpoint-coordinator}}/status/selfDiscovered",
+							"host": [
+								"{{endpoint-coordinator}}"
+							],
+							"path": [
+								"status",
+								"selfDiscovered"
+							]
+						},
+						"description": "Similar to /status/selfDiscovered/status, but returns 200 OK response with empty body if the node has discovered itself and 503 SERVICE UNAVAILABLE if the node hasn't discovered itself yet. This endpoint might be useful because some monitoring checks such as AWS load balancer health checks are not able to look at the response body."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Coordinator (Data Management)",
+			"item": [
+				{
+					"name": "Leadership Service",
+					"item": [
+						{
+							"name": "Get current leader",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/leader",
+									"host": [
+										"{{endpoint-coordinator}}"
+									],
+									"path": [
+										"druid",
+										"coordinator",
+										"v1",
+										"leader"
+									]
+								},
+								"description": "Returns the current leader Coordinator of the cluster."
+							},
+							"response": []
+						},
+						{
+							"name": "Check if this is the leader",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/isLeader",
+									"host": [
+										"{{endpoint-coordinator}}"
+									],
+									"path": [
+										"druid",
+										"coordinator",
+										"v1",
+										"isLeader"
+									]
+								},
+								"description": "Returns a JSON object with field \"leader\", either true or false, indicating if this server is the current leader Coordinator of the cluster. In addition, returns HTTP 200 if the server is the current leader and HTTP 404 if not. This is suitable for use as a load balancer status check if you only want the active leader to be considered in-service at the load balancer."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Data Management Service",
+					"item": [
+						{
+							"name": "Target Locations",
+							"item": [
+								{
+									"name": "Servers",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/servers",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"servers"
+											]
+										},
+										"description": "Returns a list of servers URLs using the format {hostname}:{port}. Note that processes that run with different types will appear multiple times with different ports."
+									},
+									"response": []
+								},
+								{
+									"name": "Servers (simple)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/servers?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"servers"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of server data objects in which each object has the following keys:\n\nhost: host URL include ({hostname}:{port})\ntype: process type (indexer-executor, historical)\ncurrSize: storage size currently used\nmaxSize: maximum storage size\npriority\ntier"
+									},
+									"response": []
+								}
+							],
+							"description": "https://druid.apache.org/docs/latest/operations/api-reference.html#segment-loading-by-datasource"
+						},
+						{
+							"name": "Data Available",
+							"item": [
+								{
+									"name": "Full Datasource List - used only",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources"
+											]
+										},
+										"description": "Returns a list of the names of data sources with at least one used segment in the cluster."
+									},
+									"response": []
+								},
+								{
+									"name": "Full Datasource Metadata - used only",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of all data sources with at least one used segment in the cluster. Returns all metadata about those data sources as stored in the metadata store."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segment Metadata",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}/segments/{{segmentId}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments",
+												"{{segmentId}}"
+											]
+										},
+										"description": "Returns full segment metadata for a specific segment as stored in the metadata store, if the segment is used. If the segment is unused, or is unknown, a 404 response is returned."
+									},
+									"response": []
+								},
+								{
+									"name": "Full Datasource List - all",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources?includeUnused\n",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources"
+											],
+											"query": [
+												{
+													"key": "includeUnused\n",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of the names of data sources, regardless of whether there are used segments belonging to those data sources in the cluster or not."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Metadata",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}"
+											]
+										},
+										"description": "Returns full metadata for a datasource as stored in the metadata store."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segments - List",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}/segments",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											]
+										},
+										"description": "Returns a list of all segments for a datasource as stored in the metadata store."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segments - Detailed List",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}/segments?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of all segments for a datasource with the full segment metadata as stored in the metadata store."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Intervals Segment List",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}/segments",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											]
+										},
+										"description": "Returns a list of all segments, overlapping with any of given intervals, for a datasource as stored in the metadata store. Request body is array of string IS0 8601 intervals like [interval1, interval2,...] for example [\"2012-01-01T00:00:00.000/2012-01-03T00:00:00.000\", \"2012-01-05T00:00:00.000/2012-01-07T00:00:00.000\"]"
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Intervals Segment Metadata",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/metadata/datasources/{{dataSourceName}}/segments?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"metadata",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of all segments, overlapping with any of given intervals, for a datasource with the full segment metadata as stored in the metadata store. Request body is array of string ISO 8601 intervals like [interval1, interval2,...] for example [\"2012-01-01T00:00:00.000/2012-01-03T00:00:00.000\", \"2012-01-05T00:00:00.000/2012-01-07T00:00:00.000\"]"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Business Rules",
+							"item": [
+								{
+									"name": "List all rules",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/rules",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"rules"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Update Rules (Datasource)",
+									"request": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "X-Druid-Author",
+												"value": "PeMa",
+												"description": "Person making the configuration change",
+												"type": "text"
+											},
+											{
+												"key": "X-Druid-Comment",
+												"value": "I'm making a change",
+												"description": "Describing the change being done",
+												"type": "text"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "[]",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/rules/{{dataSourceName}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"rules",
+												"{{dataSourceName}}"
+											]
+										},
+										"description": "https://druid.apache.org/docs/latest/operations/api-reference.html#post-2\n\nPOST with a list of rules in JSON form to update rules.\n\nOptional Header Parameters for auditing the config change can also be specified.\n\nX-Druid-Author\t- author - making the config change\nX-Druid-Comment - comment - describing the change being done\n\nNote that all interval URL parameters are ISO 8601 strings delimited by a _ instead of a / (e.g., 2016-06-27_2016-06-28)."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Progress",
+							"item": [
+								{
+									"name": "Load Status - %age complete",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadstatus/",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadstatus",
+												""
+											]
+										},
+										"description": "Returns the percentage of segments actually loaded in the cluster versus segments that should be loaded in the cluster."
+									},
+									"response": []
+								},
+								{
+									"name": "Load Status - #",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadstatus?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadstatus"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns the number of segments left to load until segments that should be loaded in the cluster are available for queries. This does not include segment replication counts."
+									},
+									"response": []
+								},
+								{
+									"name": "Load Status - # by tier",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadstatus?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadstatus"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns the number of segments left to load in each tier until segments that should be loaded in the cluster are all available. This includes segment replication counts."
+									},
+									"response": []
+								},
+								{
+									"name": "Load Queue - Ids",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadqueue",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadqueue"
+											]
+										},
+										"description": "Returns the ids of segments to load and drop for each Historical process."
+									},
+									"response": []
+								},
+								{
+									"name": "Load Queue - # by Historical",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadqueue?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadqueue"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns the number of segments to load and drop, as well as the total segment load and drop size in bytes for each Historical process."
+									},
+									"response": []
+								},
+								{
+									"name": "Load Queue - JSON",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/loadqueue?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"loadqueue"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns the serialized JSON of segments to load and drop for each Historical process."
+									},
+									"response": []
+								},
+								{
+									"name": "Datasource Load Status - Interval - %age",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/loadstatus?forceMetadataRefresh={{boolean}}&interval={{myInterval}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"loadstatus"
+											],
+											"query": [
+												{
+													"key": "forceMetadataRefresh",
+													"value": "{{boolean}}"
+												},
+												{
+													"key": "interval",
+													"value": "{{myInterval}}"
+												}
+											]
+										},
+										"description": "Returns the percentage of segments actually loaded in the cluster versus segments that should be loaded in the cluster for the given datasource over the given interval (or last 2 weeks if interval is not given). forceMetadataRefresh is required to be set. Setting forceMetadataRefresh to true will force the coordinator to poll latest segment metadata from the metadata store (Note: forceMetadataRefresh=true refreshes Coordinator's metadata cache of all datasources. This can be a heavy operation in terms of the load on the metadata store but can be necessary to make sure that we verify all the latest segments' load status) Setting forceMetadataRefresh to false will use the metadata cached on the coordinator from the last force/periodic refresh. If no used segments are found for the given inputs, this API returns 204 No Content"
+									},
+									"response": []
+								},
+								{
+									"name": "Datasource Load Status - Interval - # (no replicas)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/loadstatus?simple&forceMetadataRefresh={{boolean}}&interval={{myInterval}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"loadstatus"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												},
+												{
+													"key": "forceMetadataRefresh",
+													"value": "{{boolean}}"
+												},
+												{
+													"key": "interval",
+													"value": "{{myInterval}}"
+												}
+											]
+										},
+										"description": "Returns the number of segments left to load until segments that should be loaded in the cluster are available for the given datasource over the given interval (or last 2 weeks if interval is not given). This does not include segment replication counts. forceMetadataRefresh is required to be set. Setting forceMetadataRefresh to true will force the coordinator to poll latest segment metadata from the metadata store (Note: forceMetadataRefresh=true refreshes Coordinator's metadata cache of all datasources. This can be a heavy operation in terms of the load on the metadata store but can be necessary to make sure that we verify all the latest segments' load status) Setting forceMetadataRefresh to false will use the metadata cached on the coordinator from the last force/periodic refresh. If no used segments are found for the given inputs, this API returns 204 No Content"
+									},
+									"response": []
+								},
+								{
+									"name": "Datasource Load Status - Interval - # (with replicas)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/loadstatus?full&forceMetadataRefresh={{boolean}}&interval={{myInterval}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"loadstatus"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												},
+												{
+													"key": "forceMetadataRefresh",
+													"value": "{{boolean}}"
+												},
+												{
+													"key": "interval",
+													"value": "{{myInterval}}"
+												}
+											]
+										},
+										"description": "Returns the number of segments left to load in each tier until segments that should be loaded in the cluster are all available for the given datasource over the given interval (or last 2 weeks if interval is not given). This includes segment replication counts. forceMetadataRefresh is required to be set. Setting forceMetadataRefresh to true will force the coordinator to poll latest segment metadata from the metadata store (Note: forceMetadataRefresh=true refreshes Coordinator's metadata cache of all datasources. This can be a heavy operation in terms of the load on the metadata store but can be necessary to make sure that we verify all the latest segments' load status) Setting forceMetadataRefresh to false will use the metadata cached on the coordinator from the last force/periodic refresh. If no used segments are found for the given inputs, this API returns 204 No Content"
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Current State (???)",
+							"item": [
+								{
+									"name": "Datasource List",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources"
+											]
+										},
+										"description": "Returns a list of datasource names found in the cluster."
+									},
+									"response": []
+								},
+								{
+									"name": "Datasource Data Statistics",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of JSON objects containing the name and properties of datasources found in the cluster. Properties include segment count, total segment byte size, replicated total segment byte size, minTime, and maxTime."
+									},
+									"response": []
+								},
+								{
+									"name": "Datasource Details",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of datasource names found in the cluster with all metadata about those datasources."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Statistics",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}"
+											]
+										},
+										"description": "Returns a JSON object containing the name and properties of a datasource. Properties include segment count, total segment byte size, replicated total segment byte size, minTime, and maxTime."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Details",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns full metadata for a datasource ."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Intervals",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals"
+											]
+										},
+										"description": "Returns a set of segment intervals."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Intervals Statistics",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a map of an interval to a JSON object containing the total byte size of segments and number of segments for that interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Intervals Servers",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a map of an interval to a map of segment metadata to a set of server names that contain the segment for that interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Interval Segments Ids",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals/{{interval}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals",
+												"{{interval}}"
+											]
+										},
+										"description": "Returns a set of segment ids for an interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Interval Segments Statistics",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals/{{interval}}?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals",
+												"{{interval}}"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a map of segment intervals contained within the specified interval to a JSON object containing the total byte size of segments and number of segments for an interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Interval Segments Servers",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals/{{interval}}?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals",
+												"{{interval}}"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a map of segment intervals contained within the specified interval to a map of segment metadata to a set of server names that contain the segment for an interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Interval Segments Servers Details",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/intervals/{{interval}}/serverview",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"intervals",
+												"{{interval}}",
+												"serverview"
+											]
+										},
+										"description": "Returns a map of segment intervals contained within the specified interval to information about the servers that contain the segment for an interval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segments",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/segments",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											]
+										},
+										"description": "Returns a list of all segments for a datasource in the cluster."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segments Details",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/segments?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of all segments for a datasource in the cluster with the full segment metadata."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Segment Metadata",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/segments/{{segmentId}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"segments",
+												"{{segmentId}}"
+											]
+										},
+										"description": "Returns full segment metadata for a specific segment in the cluster."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Tier List",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/datasources/{{dataSourceName}}/tiers",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"datasources",
+												"{{dataSourceName}}",
+												"tiers"
+											]
+										},
+										"description": "Return the tiers that a datasource exists in."
+									},
+									"response": []
+								},
+								{
+									"name": "Interval stats",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/intervals",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"intervals"
+											]
+										},
+										"description": "Returns all intervals for all datasources with total size and count."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Interval stats",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/intervals/{{interval}}",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"intervals",
+												"{{interval}}"
+											]
+										},
+										"description": "Returns aggregated total size and count for all intervals that intersect given isointerval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Interval stats (simple)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/intervals/{{interval}}?simple",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"intervals",
+												"{{interval}}"
+											],
+											"query": [
+												{
+													"key": "simple",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns total size and count for each interval within given isointerval."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Interval stats (full)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/coordinator/v1/intervals/{{interval}}?full",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"coordinator",
+												"v1",
+												"intervals",
+												"{{interval}}"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns total size and count for each datasource for each interval within given isointerval."
+									},
+									"response": []
+								}
+							],
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											""
+										]
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											""
+										]
+									}
+								}
+							]
+						}
+					],
+					"description": "https://druid.apache.org/docs/latest/operations/api-reference.html#segment-loading",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Overlord (Data Ingestion)",
+			"item": [
+				{
+					"name": "Leadership Service",
+					"item": [
+						{
+							"name": "Get current leader",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/leader",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"leader"
+									]
+								},
+								"description": "Returns the current leader Coordinator of the cluster."
+							},
+							"response": []
+						},
+						{
+							"name": "Check if this is the leader",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/isLeader",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"isLeader"
+									]
+								},
+								"description": "Returns a JSON object with field \"leader\", either true or false, indicating if this server is the current leader Coordinator of the cluster. In addition, returns HTTP 200 if the server is the current leader and HTTP 404 if not. This is suitable for use as a load balancer status check if you only want the active leader to be considered in-service at the load balancer."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Batch Ingestion Service",
+					"item": [
+						{
+							"name": "Submit",
+							"item": [
+								{
+									"name": "Submit",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"type\": \"index_parallel\",\n  \"spec\": {\n    \"dataSchema\": {\n      \"dataSource\": \"taxitrips-year-6-3mrows\",\n      \"timestampSpec\": {\n        \"column\": \"Trip End Timestamp\",\n        \"format\": \"MM/dd/yyyy hh:mm:ss a\",\n        \"missingValue\": null\n      },\n      \"dimensionsSpec\": {\n        \"dimensions\": [\n          {\n            \"type\": \"string\",\n            \"name\": \"Company\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Payment Type\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Dropoff Census Tract\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Pickup Census Tract\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Dropoff Community Area\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Pickup Community Area\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Extras\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Fare\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Tips\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Tolls\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Trip Miles\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Trip Seconds\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Trip Total\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"__time_start_long\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Taxi ID\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          }\n        ],\n        \"dimensionExclusions\": [\n          \"Trip End Timestamp\"\n        ]\n      },\n      \"metricsSpec\": [],\n      \"granularitySpec\": {\n        \"type\": \"uniform\",\n        \"segmentGranularity\": \"YEAR\",\n        \"queryGranularity\": {\n          \"type\": \"none\"\n        },\n        \"rollup\": false,\n        \"intervals\": null\n      },\n      \"transformSpec\": {\n        \"filter\": null,\n        \"transforms\": [\n          {\n            \"type\": \"expression\",\n            \"name\": \"__time_start_long\",\n            \"expression\": \"timestamp_parse(\\\"Trip End Timestamp\\\",'MM/dd/yyyy hh:mm:ss a')\"\n          }\n        ]\n      }\n    },\n    \"ioConfig\": {\n      \"type\": \"index_parallel\",\n      \"inputSource\": {\n        \"type\": \"s3\",\n        \"prefixes\": [\n          \"s3://sample-data/taxitrips/rowsplit-5k/\"\n        ],\n        \"properties\": {\n          \"accessKeyId\": {\n            \"type\": \"default\",\n            \"password\": \"public\"\n          },\n          \"secretAccessKey\": {\n            \"type\": \"default\",\n            \"password\": \"publicpublic\"\n          }\n        }\n      },\n      \"inputFormat\": {\n        \"type\": \"csv\",\n        \"columns\": [],\n        \"listDelimiter\": null,\n        \"findColumnsFromHeader\": true,\n        \"skipHeaderRows\": 0\n      },\n      \"appendToExisting\": false\n    },\n    \"tuningConfig\": {\n      \"type\": \"index_parallel\",\n      \"maxRowsPerSegment\": 5000000,\n      \"maxRowsInMemory\": 3000000,\n      \"maxBytesInMemory\": 0,\n      \"maxTotalRows\": null,\n      \"numShards\": null,\n      \"splitHintSpec\": null,\n      \"partitionsSpec\": {\n        \"type\": \"dynamic\",\n        \"maxRowsPerSegment\": 5000000,\n        \"maxTotalRows\": null\n      },\n      \"indexSpec\": {\n        \"bitmap\": {\n          \"type\": \"roaring\",\n          \"compressRunOnSerialization\": true\n        },\n        \"dimensionCompression\": \"lz4\",\n        \"metricCompression\": \"lz4\",\n        \"longEncoding\": \"longs\",\n        \"segmentLoader\": null\n      },\n      \"indexSpecForIntermediatePersists\": {\n        \"bitmap\": {\n          \"type\": \"roaring\",\n          \"compressRunOnSerialization\": true\n        },\n        \"dimensionCompression\": \"lz4\",\n        \"metricCompression\": \"lz4\",\n        \"longEncoding\": \"longs\",\n        \"segmentLoader\": null\n      },\n      \"maxPendingPersists\": 0,\n      \"forceGuaranteedRollup\": false,\n      \"reportParseExceptions\": false,\n      \"pushTimeout\": 0,\n      \"segmentWriteOutMediumFactory\": null,\n      \"maxNumConcurrentSubTasks\": 6,\n      \"maxRetry\": 3,\n      \"taskStatusCheckPeriodMs\": 1000,\n      \"chatHandlerTimeout\": \"PT10S\",\n      \"chatHandlerNumRetries\": 5,\n      \"maxNumSegmentsToMerge\": 100,\n      \"totalNumMergeTasks\": 10,\n      \"logParseExceptions\": false,\n      \"maxParseExceptions\": 2147483647,\n      \"maxSavedParseExceptions\": 0,\n      \"buildV9Directly\": true,\n      \"partitionDimensions\": []\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task"
+											]
+										},
+										"description": "Endpoint for submitting tasks and supervisor specs to the Overlord. Returns the taskId of the submitted task."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Monitor",
+							"item": [
+								{
+									"name": "Tasks",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/tasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"tasks"
+											]
+										},
+										"description": "Retrieve list of tasks. Accepts query string parameters state, datasource, createdTimeInterval, max, and type."
+									},
+									"response": []
+								},
+								{
+									"name": "Tasks (complete)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/completeTasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"completeTasks"
+											]
+										},
+										"description": "Retrieve list of complete tasks. Equivalent to /druid/indexer/v1/tasks?state=complete"
+									},
+									"response": []
+								},
+								{
+									"name": "Tasks (running)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/runningTasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"runningTasks"
+											]
+										},
+										"description": "Retrieve list of running tasks. Equivalent to /druid/indexer/v1/tasks?state=running."
+									},
+									"response": []
+								},
+								{
+									"name": "Tasks (waiting)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/waitingTasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"waitingTasks"
+											]
+										},
+										"description": "Retrieve list of waiting tasks. Equivalent to /druid/indexer/v1/tasks?state=waiting."
+									},
+									"response": []
+								},
+								{
+									"name": "Tasks (pending)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/pendingTasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"pendingTasks"
+											]
+										},
+										"description": "Retrieve list of pending tasks. Equivalent to /druid/indexer/v1/tasks?state=pending."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Task payload",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task/{{taskId}}",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task",
+												"{{taskId}}"
+											]
+										},
+										"description": "Retrieve the 'payload' of a task."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Task status",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task/{{taskId}}/status",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task",
+												"{{taskId}}",
+												"status"
+											]
+										},
+										"description": "Retrieve the status of a task."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Task segments",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task/{{taskId}}/segments",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task",
+												"{{taskId}}",
+												"segments"
+											]
+										},
+										"description": "Retrieve information about the segments of a task.\n(To be deprecated)"
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Task completion report",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/indexer/v1/task/{{taskId}}/reports",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task",
+												"{{taskId}}",
+												"reports"
+											]
+										},
+										"description": "Retrieve a task completion report for a task. Only works for completed tasks."
+									},
+									"response": []
+								},
+								{
+									"name": "List of Tasks status",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "\"index_parallel_taxitrips-year-9-5mrows_pomghkca_2021-04-20T13:22:57.266Z\"",
+											"options": {
+												"raw": {
+													"language": "text"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/taskStatus",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"taskStatus"
+											]
+										},
+										"description": "Retrieve list of task status objects for list of task id strings in request body."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Control",
+							"item": [
+								{
+									"name": "Specific Task shutdown",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task/{{taskId}}/shutdown",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task",
+												"{{taskId}}",
+												"shutdown"
+											]
+										},
+										"description": "Shuts down a task."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Datasource Tasks shutdown",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/datasources/{{dataSource}}/shutdownAllTasks",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"datasources",
+												"{{dataSource}}",
+												"shutdownAllTasks"
+											]
+										},
+										"description": "Shuts down all tasks for a dataSource."
+									},
+									"response": []
+								},
+								{
+									"name": "Purge Pending Segments",
+									"request": {
+										"method": "DELETE",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/pendingSegments/{{dataSource}}",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"pendingSegments",
+												"{{dataSource}}"
+											]
+										},
+										"description": "Manually clean up pending segments table in metadata storage for datasource. Returns a JSON object response with numDeleted and count of rows deleted from the pending segments table. This API is used by the druid.coordinator.kill.pendingSegments.on coordinator setting which automates this operation to perform periodically."
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Streaming Ingestion Service",
+					"item": [
+						{
+							"name": "Submit",
+							"item": [
+								{
+									"name": "Submit",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"type\": \"index_parallel\",\n  \"spec\": {\n    \"dataSchema\": {\n      \"dataSource\": \"taxitrips-year-9-5mrows\",\n      \"timestampSpec\": {\n        \"column\": \"Trip End Timestamp\",\n        \"format\": \"MM/dd/yyyy hh:mm:ss a\",\n        \"missingValue\": null\n      },\n      \"dimensionsSpec\": {\n        \"dimensions\": [\n          {\n            \"type\": \"string\",\n            \"name\": \"Company\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Payment Type\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Dropoff Census Tract\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Pickup Census Tract\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Dropoff Community Area\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Pickup Community Area\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Extras\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Fare\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Tips\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Tolls\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Trip Miles\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"float\",\n            \"name\": \"Trip Seconds\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"Trip Total\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"long\",\n            \"name\": \"__time_start_long\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": false\n          },\n          {\n            \"type\": \"string\",\n            \"name\": \"Taxi ID\",\n            \"multiValueHandling\": \"SORTED_ARRAY\",\n            \"createBitmapIndex\": true\n          }\n        ],\n        \"dimensionExclusions\": [\n          \"Trip End Timestamp\"\n        ]\n      },\n      \"metricsSpec\": [],\n      \"granularitySpec\": {\n        \"type\": \"uniform\",\n        \"segmentGranularity\": \"YEAR\",\n        \"queryGranularity\": {\n          \"type\": \"none\"\n        },\n        \"rollup\": false,\n        \"intervals\": null\n      },\n      \"transformSpec\": {\n        \"filter\": null,\n        \"transforms\": [\n          {\n            \"type\": \"expression\",\n            \"name\": \"__time_start_long\",\n            \"expression\": \"timestamp_parse(\\\"Trip End Timestamp\\\",'MM/dd/yyyy hh:mm:ss a')\"\n          }\n        ]\n      }\n    },\n    \"ioConfig\": {\n      \"type\": \"index_parallel\",\n      \"inputSource\": {\n        \"type\": \"s3\",\n        \"uris\": null,\n        \"prefixes\": [\n          \"s3://sample-data/taxitrips/rowsplit-5k/\"\n        ],\n        \"objects\": null,\n        \"properties\": {\n          \"accessKeyId\": {\n            \"type\": \"default\",\n            \"password\": \"public\"\n          },\n          \"secretAccessKey\": {\n            \"type\": \"default\",\n            \"password\": \"publicpublic\"\n          }\n        }\n      },\n      \"inputFormat\": {\n        \"type\": \"csv\",\n        \"columns\": [],\n        \"listDelimiter\": null,\n        \"findColumnsFromHeader\": true,\n        \"skipHeaderRows\": 0\n      },\n      \"appendToExisting\": false\n    },\n    \"tuningConfig\": {\n      \"type\": \"index_parallel\",\n      \"maxRowsPerSegment\": 5000000,\n      \"maxRowsInMemory\": 2500000,\n      \"maxBytesInMemory\": 0,\n      \"maxTotalRows\": null,\n      \"numShards\": null,\n      \"splitHintSpec\": null,\n      \"partitionsSpec\": {\n        \"type\": \"dynamic\",\n        \"maxRowsPerSegment\": 5000000,\n        \"maxTotalRows\": null\n      },\n      \"indexSpec\": {\n        \"bitmap\": {\n          \"type\": \"roaring\",\n          \"compressRunOnSerialization\": true\n        },\n        \"dimensionCompression\": \"lz4\",\n        \"metricCompression\": \"lz4\",\n        \"longEncoding\": \"longs\",\n        \"segmentLoader\": null\n      },\n      \"indexSpecForIntermediatePersists\": {\n        \"bitmap\": {\n          \"type\": \"roaring\",\n          \"compressRunOnSerialization\": true\n        },\n        \"dimensionCompression\": \"lz4\",\n        \"metricCompression\": \"lz4\",\n        \"longEncoding\": \"longs\",\n        \"segmentLoader\": null\n      },\n      \"maxPendingPersists\": 0,\n      \"forceGuaranteedRollup\": false,\n      \"reportParseExceptions\": false,\n      \"pushTimeout\": 0,\n      \"segmentWriteOutMediumFactory\": null,\n      \"maxNumConcurrentSubTasks\": 9,\n      \"maxRetry\": 3,\n      \"taskStatusCheckPeriodMs\": 1000,\n      \"chatHandlerTimeout\": \"PT10S\",\n      \"chatHandlerNumRetries\": 5,\n      \"maxNumSegmentsToMerge\": 100,\n      \"totalNumMergeTasks\": 10,\n      \"logParseExceptions\": false,\n      \"maxParseExceptions\": 2147483647,\n      \"maxSavedParseExceptions\": 0,\n      \"buildV9Directly\": true,\n      \"partitionDimensions\": []\n    }\n  }\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/task",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"task"
+											]
+										},
+										"description": "Endpoint for submitting tasks and supervisor specs to the Overlord. Returns the taskId of the submitted task."
+									},
+									"response": []
+								},
+								{
+									"name": "Supervisor Payload History",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/history",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"history"
+											]
+										},
+										"description": "Returns an audit history of specs for all supervisors (current and past)."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Supervisor Payload history",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/history",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"history"
+											]
+										},
+										"description": "Returns an audit history of specs for the supervisor with the provided ID."
+									},
+									"response": []
+								}
+							],
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											""
+										]
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											""
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "Monitor",
+							"item": [
+								{
+									"name": "Supervisors",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor"
+											]
+										},
+										"description": "Returns a list of strings of the currently active supervisor ids."
+									},
+									"response": []
+								},
+								{
+									"name": "Supervisor state",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor?full",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor"
+											],
+											"query": [
+												{
+													"key": "full",
+													"value": null
+												}
+											]
+										},
+										"description": "Returns a list of objects of the currently active supervisors."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Supervisor state",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/status",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"status"
+											]
+										},
+										"description": "Returns the current status of the supervisor with the provided ID."
+									},
+									"response": []
+								},
+								{
+									"name": "Supervisors (active)",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor?state=true",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor"
+											],
+											"query": [
+												{
+													"key": "state",
+													"value": "true"
+												}
+											]
+										},
+										"description": "Returns a list of objects of the currently active supervisors and their current state."
+									},
+									"response": []
+								},
+								{
+									"name": "Specific Supervisor Payload",
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}"
+											]
+										},
+										"description": "Returns the current spec for the supervisor with the provided ID."
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Control",
+							"item": [
+								{
+									"name": "Suspend specific supervisor",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/suspend",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"suspend"
+											]
+										},
+										"description": "Suspend the current running supervisor of the provided ID. Responds with updated SupervisorSpec."
+									},
+									"response": []
+								},
+								{
+									"name": "Suspend all",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/suspendAll",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"suspendAll"
+											]
+										},
+										"description": "Suspend all supervisors at once."
+									},
+									"response": []
+								},
+								{
+									"name": "Resume specific supervisor",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/resume",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"resume"
+											]
+										},
+										"description": "Resume indexing tasks for a supervisor. Responds with updated SupervisorSpec."
+									},
+									"response": []
+								},
+								{
+									"name": "Resume all",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/resumeAll",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"resumeAll"
+											]
+										},
+										"description": "Resume all supervisors at once."
+									},
+									"response": []
+								},
+								{
+									"name": "Reset specific supervisor",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/reset",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"reset"
+											]
+										},
+										"description": "Reset the specified supervisor."
+									},
+									"response": []
+								},
+								{
+									"name": "Terminate all",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/terminateAll",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"terminateAll"
+											]
+										},
+										"description": "Terminate all supervisors at once."
+									},
+									"response": []
+								},
+								{
+									"name": "Terminate specific supervisor",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-coordinator}}/druid/indexer/v1/supervisor/{{supervisorId}}/terminate",
+											"host": [
+												"{{endpoint-coordinator}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"terminate"
+											]
+										},
+										"description": "Terminate a supervisor of the provided ID."
+									},
+									"response": []
+								},
+								{
+									"name": "Shutdown a supervisor (dep)",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"url": {
+											"raw": "{{endpoint-overlord}}/druid/indexer/v1/supervisor/{{supervisorId}}/shutdown",
+											"host": [
+												"{{endpoint-overlord}}"
+											],
+											"path": [
+												"druid",
+												"indexer",
+												"v1",
+												"supervisor",
+												"{{supervisorId}}",
+												"shutdown"
+											]
+										},
+										"description": "Shutdown a supervisor."
+									},
+									"response": []
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Overlord Configuration Service",
+					"item": [
+						{
+							"name": "View configuration",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/worker",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"worker"
+									]
+								},
+								"description": "Retrieves current overlord dynamic configuration."
+							},
+							"response": []
+						},
+						{
+							"name": "View configuration history",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/worker/history?interval=&counter=",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"worker",
+										"history"
+									],
+									"query": [
+										{
+											"key": "interval",
+											"value": ""
+										},
+										{
+											"key": "counter",
+											"value": ""
+										}
+									]
+								},
+								"description": "Retrieves history of changes to overlord dynamic configuration. Accepts interval and count query string parameters to filter by interval and limit the number of results respectively."
+							},
+							"response": []
+						},
+						{
+							"name": "Autoscaling events",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/scaling",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"scaling"
+									]
+								},
+								"description": "Retrieves overlord scaling events if auto-scaling runners are in use."
+							},
+							"response": []
+						},
+						{
+							"name": "Set configuration",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{endpoint-overlord}}/druid/indexer/v1/worker",
+									"host": [
+										"{{endpoint-overlord}}"
+									],
+									"path": [
+										"druid",
+										"indexer",
+										"v1",
+										"worker"
+									]
+								},
+								"description": "Update overlord dynamic worker configuration."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
