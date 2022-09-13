@@ -6,6 +6,18 @@ The Druid Data Driver is a python script that simulates a workload that generate
 You can use a JSON config file to describe the characteristics of the workload you want the Druid Data Driver to simulate.
 The script uses this config file to generate JSON records.
 
+Here are the commands to set up the Python environment:
+
+```
+apt-get install python3
+apt-get update
+apt-get install -y python3-pip
+
+pip install python-dateutil
+pip install kafka-python
+pip install numpy
+```
+
 Run the program as follows:
 
 ```python DruidDataDriver.py <options>```
@@ -326,7 +338,7 @@ Timestamp dimension specification entries have the following format:
 }
 ```
 
-Where: 
+Where:
 - <i>name</i> is the name of the dimension
 - <i>distribution</i> describes the distribution of timestamp values the driver generates
 - <i>cardinality</i> indicates the number of unique values for this dimension (zero for unconstrained cardinality)
