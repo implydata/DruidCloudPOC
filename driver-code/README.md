@@ -16,6 +16,7 @@ apt-get install -y python3-pip
 pip install python-dateutil
 pip install kafka-python
 pip install numpy
+pip install sortedcontainers
 ```
 
 Run the program as follows:
@@ -26,6 +27,7 @@ Options include:
 
 ```
 -f <configuration file name>
+-s
 -n <total number of records to generate>
 -t <duration for generating records>
 ```
@@ -33,6 +35,11 @@ Options include:
 Use the _-f_ option to designate a configuration file name.
 If you omit the _-f_ option, the script reads the configuration from _stdin_.
 
+The _-s_ option tells the driver to use simulated time instead of wall clock time (the default).
+The simulated clock starts at the current time and advances the simulated clock based on the
+generated events (i.e., records).
+When used with the _-t_ option, the simulated clock simulates the duration.
+This option is useful for generating batch data as quickly as possible.
 
 The other two options control how long the script runs.
 If neither option is present, the script will run indefinitely.
