@@ -4,11 +4,12 @@
 
 import argparse
 import dateutil.parser
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from kafka import KafkaProducer
 import numpy as np
 import random
+from sortedcontainers import SortedList
 import string
 import sys
 import threading
@@ -40,6 +41,7 @@ parser = argparse.ArgumentParser(description='Generates JSON records as a worklo
 parser.add_argument('-f', dest='config_file', nargs='?', help='the workload config file name')
 parser.add_argument('-t', dest='time', nargs='?', help='the script runtime (may not be used with -n)')
 parser.add_argument('-n', dest='n_recs', nargs='?', help='the number of records to generate (may not be used with -t)')
+parser.add_argument('-s', dest='time_type', nargs='?', const='SIM', default='REAL', help='simulate time (default is real, not simulated)')
 
 args = parser.parse_args()
 
@@ -48,6 +50,7 @@ runtime = args.time
 total_recs = None
 if args.n_recs is not None:
     total_recs = int(args.n_recs)
+time_type = args.time_type
 
 if (runtime is not None) and (total_recs is not None):
     print("Use either -t or -n, but not both")
@@ -61,13 +64,130 @@ if config_file_name:
 else:
     config = json.load(sys.stdin)
 
+class FutureEvent:
+    def __init__(self, t):
+        self.t = t
+        self.name = threading.current_thread().name
+        self.event = threading.Event()
+    def get_time(self):
+        return self.t
+    def __lt__(self, other):
+        return self.t < other.t
+    def __eq__(self, other):
+        return self.t == other.t
+    def __str__(self):
+        return 'FutureEvent('+self.name+', '+str(self.t)+')'
+    def pause(self):
+        #print(self.name+" pausing")
+        self.event.clear()
+        self.event.wait()
+    def resume(self):
+        #print(self.name+" resuming")
+        self.event.set()
+
+class Clock:
+    sim_time = datetime.now()
+    future_events = SortedList()
+    active_threads = 0
+    lock = threading.Lock()
+
+    def __init__(self, time_type):
+        self.time_type = time_type
+
+    def activate_thread(self):
+        if self.time_type == 'SIM':
+            self.lock.acquire()
+            #print('activating '+threading.current_thread().name)
+            self.active_threads += 1
+            self.lock.release()
+
+    def deactivate_thread(self):
+        if self.time_type == 'SIM':
+            self.lock.acquire()
+            #print('deactivating '+threading.current_thread().name)
+            self.active_threads -= 1
+            #print('active_threads = '+str(self.active_threads))
+            if self.active_threads == 0:
+                self.resume(self.remove_event())
+            self.lock.release()
+
+    def release_all(self):
+        if self.time_type == 'SIM':
+            self.lock.acquire()
+            #print('release_all - active_threads = '+str(self.active_threads))
+            self.active_threads += 1 # increment this so that the last thread doesn't hit the FEL
+            while self.active_threads > 1:
+                for e in self.future_events:
+                    self.resume(e)
+                self.lock.release()
+                time.sleep(0)
+                self.lock.acquire()
+
+            self.active_threads -= 1
+            self.lock.release()
+
+    def add_event(self, future_t):
+        this_event = FutureEvent(future_t)
+        self.future_events.add(this_event)
+        #print('add_event - adding '+str(this_event))
+        return this_event
+
+    def remove_event(self):
+        next_event = self.future_events[0]
+        self.future_events.remove(next_event)
+        #print('remove_event - removing '+str(next_event))
+        return next_event
+
+    def pause(self, event):
+        self.active_threads -= 1
+        self.lock.release()
+        event.pause()
+        self.lock.acquire()
+        self.active_threads += 1
+
+    def resume(self, event):
+        event.resume()
+
+    def now(self):
+        if time_type == 'SIM':
+            t = self.sim_time
+        else:
+            t = datetime.now()
+        return t
+
+    def sleep(self, delta):
+        #print(threading.current_thread().name+" begin sleep "+str(self.sim_time)+" + "+str(delta))
+        if self.time_type == 'SIM': # Simulated time
+            self.lock.acquire()
+
+            this_event = self.add_event(self.sim_time + timedelta(seconds=delta))
+            if self.active_threads > 1:
+                self.pause(this_event)
+            else:
+                next_event = self.remove_event()
+                if this_event != next_event:
+                    self.resume(next_event)
+                    self.pause(this_event)
+
+            self.sim_time = this_event.get_time()
+            self.lock.release()
+
+        else: # Real time
+            time.sleep(delta)
+        #print(threading.current_thread().name+" end sleep "+str(self.sim_time))
+
+global_clock = Clock(time_type)
+
 #
 # Set up the target
 #
 
 class PrintStdout:
+    lock = threading.Lock()
     def print(self, record):
-        print(str(record))
+        with self.lock:
+            print(str(record))
+            sys.stdout.flush()
     def __str__(self):
         return 'PrintStdout()'
 
@@ -226,7 +346,7 @@ class ElementNow: # The __time dimension
     def __str__(self):
         return 'ElementNow()'
     def get_json_field_string(self):
-        now = datetime.now().isoformat()
+        now = global_clock.now().isoformat()
         return '"__time":"'+now+'"'
 
 class ElementEnum: # enumeration dimensions
@@ -434,6 +554,7 @@ def get_variables(desc):
     return elements
 
 def get_dimensions(desc):
+    global time_gen
     elements = get_variables(desc)
     elements.insert(0, ElementNow())
     return elements
@@ -535,7 +656,8 @@ def worker_thread(target_printer, states, initial_state):
     # Process the state machine using worker threads
     global record_count
     global total_recs
-    global thread_end_event
+    global global_clock
+    global_clock.activate_thread()
     current_state = initial_state
     variables = {}
     while True:
@@ -546,20 +668,32 @@ def worker_thread(target_printer, states, initial_state):
         if total_recs is not None and record_count >= total_recs:
             thread_end_event.set()
             break
-        time.sleep(float(current_state.delay.get_sample()))
+        global_clock.sleep(float(current_state.delay.get_sample()))
+        if total_recs is not None and record_count >= total_recs:
+            thread_end_event.set()
+            break
         next_state_name = current_state.get_next_state_name()
         if next_state_name.lower() == 'stop':
             break
         current_state = states[next_state_name]
+    global_clock.deactivate_thread()
 
 def spawning_thread(target_printer, rate_delay, states, initial_state):
+    global thread_end_event
+    global global_clock
+    global_clock.activate_thread()
     # Spawn the workers in a separate thread so we can stop the whole thing in the middle of spawning if necessary
-    while True:
-        t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, ), daemon=True)
-        t.start()
-        time.sleep(float(rate_delay.get_sample()))
+    count = 0
+    while not thread_end_event.is_set():
+        thread_name = 'W'+str(count)
 
-thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), daemon=True)
+        count += 1
+        t = threading.Thread(target=worker_thread, args=(target_printer, states, initial_state, ), name=thread_name, daemon=True)
+        t.start()
+        global_clock.sleep(float(rate_delay.get_sample()))
+    global_clock.deactivate_thread()
+
+thrd = threading.Thread(target=spawning_thread, args=(target_printer, rate_delay, states, initial_state, ), name='Spawning', daemon=True)
 thrd.start()
 
 if runtime is not None:
@@ -572,9 +706,12 @@ if runtime is not None:
     else:
         print('Error: Unknown runtime value"'+runtime+'"')
         exit()
-    time.sleep(t)
+    global_clock.activate_thread()
+    global_clock.sleep(t)
+    global_clock.deactivate_thread()
 elif total_recs is not None:
     thread_end_event.wait()
+    global_clock.release_all()
 else:
     while True:
         time.sleep(60)
