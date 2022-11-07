@@ -173,7 +173,7 @@ Here is a `lookup` map for the community area codes.
 
 ## Things you can do
 
-> See how this data set can be put through the Druid Data Modeling Principles on the [INSERT]("./ingestion-INSERT.md") page.
+> See how this data set can be put through the Druid Data Modeling Principles on the [INSERT](./ingestion-INSERT.md) page.
 
 ### Secondary Timestamps
 
