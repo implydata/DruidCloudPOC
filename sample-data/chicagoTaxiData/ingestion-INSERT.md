@@ -14,7 +14,9 @@ Note that special `COALESCE` on the `__time` – this is because the `Trip End T
 
 ```
 REPLACE INTO "taxi_0_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -110,7 +112,11 @@ SELECT
   "Trip Total" AS fare_total,
   "Payment Type" AS fare_paymentType,
   Company AS taxi_company,
-  "Pickup Centroid Location"  AS trip_pickup_gps,
+  "Pickup Centroid Latitude" AS "trip_pickup_lat",
+  "Pickup Centroid Longitude" AS "trip_pickup_lon,
+  "Pickup Centroid Location" AS trip_pickup_gps,
+  "Dropoff Centroid Latitude" AS "trip_dropoff_lat",
+  "Dropoff Centroid Longitude" AS "trip_dropoff_lon",
   CONCAT('POINT(',"Dropoff Centroid Longitude",' ',"Dropoff Centroid Latitude",')') AS trip_dropoff_gps
 FROM ext
 PARTITIONED BY ALL
@@ -125,7 +131,9 @@ Because the community area codes are settled, we can do the KV lookup early.
 
 ```
 REPLACE INTO "taxi_2_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -183,7 +191,11 @@ SELECT
   "Trip Total" AS fare_total,
   "Payment Type" AS fare_paymentType,
   Company AS taxi_company,
-  "Pickup Centroid Location"  AS trip_pickup_gps,
+  "Pickup Centroid Latitude" AS "trip_pickup_lat",
+  "Pickup Centroid Longitude" AS "trip_pickup_lon,
+  "Pickup Centroid Location" AS trip_pickup_gps,
+  "Dropoff Centroid Latitude" AS "trip_dropoff_lat",
+  "Dropoff Centroid Longitude" AS "trip_dropoff_lon",
   CONCAT('POINT(',"Dropoff Centroid Longitude",' ',"Dropoff Centroid Latitude",')') AS trip_dropoff_gps
 FROM ext
 LEFT JOIN areaLookup_dropoff ON "Dropoff Community Area" = areaLookup_dropoff.k
@@ -195,13 +207,15 @@ PARTITIONED BY ALL
 
 Now there's quite a few columns we don't need either logically or through conversation with our imaginary web developer. Notice that this script also checks that the types are all good on the `EXTERN`.
 
-* Removes superfluous columns (census tract and trip ID and start time (nobody cares - and we can calculate it anyway)
 * Checked incoming column types to make sure they are numeric when they need to be
+* Removes superfluous columns (census tract, trip ID, start time, and the lat / long columns)
 * Corrected the calculation of percentages to handle divide by zero
 
 ```
 REPLACE INTO "taxi_3_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -269,7 +283,9 @@ Turns out they want buckets of seconds taken - and that are only interested in t
 
 ```
 REPLACE INTO "taxi_4_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -341,7 +357,9 @@ Now we get to reduce the granularity for the intended graphical elements of the 
 
 ```
 REPLACE INTO "taxi_5_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -382,7 +400,7 @@ areaLookup_dropoff AS (
 
 SELECT
   FLOOR(COALESCE(TIME_PARSE("Trip End Timestamp", 'MM/dd/yyyy hh:mm:ss a'), TIME_PARSE("Trip Start Timestamp", 'MM/dd/yyyy hh:mm:ss a')) TO HOUR) AS __time,
-  ROUND("Trip Seconds"/1000) AS trip_length_bucket_max,
+  ROUND("Trip Seconds"/1000) AS trip_length_bucket,
   areaLookup_pickup.v AS "trip_pickup_area",
   areaLookup_dropoff.v AS "trip_dropoff_area",
   "Payment Type" AS fare_paymentType,
@@ -417,7 +435,9 @@ In conversation with imaginary web developers, and looking at segment sizes and 
 
 ```
 REPLACE INTO "taxi_6_sample" OVERWRITE ALL
-WITH ext AS (
+
+WITH
+ext AS (
   SELECT *
   FROM TABLE(
     EXTERN(
@@ -458,7 +478,7 @@ areaLookup_dropoff AS (
 
 SELECT
   FLOOR(COALESCE(TIME_PARSE("Trip End Timestamp", 'MM/dd/yyyy hh:mm:ss a'), TIME_PARSE("Trip Start Timestamp", 'MM/dd/yyyy hh:mm:ss a')) TO HOUR) AS __time,
-  ROUND("Trip Seconds"/1000) AS trip_length_bucket_max,
+  ROUND("Trip Seconds"/1000) AS trip_length_bucket,
   areaLookup_pickup.v AS "trip_pickup_area",
   areaLookup_dropoff.v AS "trip_dropoff_area",
   "Payment Type" AS fare_paymentType,
