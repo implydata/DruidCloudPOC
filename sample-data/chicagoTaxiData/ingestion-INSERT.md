@@ -116,7 +116,7 @@ FROM ext
 PARTITIONED BY ALL
 ```
 
-## taxi_2 - Principle 2 - calculate early - this time for lookups
+## Principle 2 again - this time for lookups
 
 Because the community area codes are settled, we can do the KV lookup early.
 
@@ -191,7 +191,7 @@ LEFT JOIN areaLookup_pickup ON "Pickup Community Area" = areaLookup_pickup.k
 PARTITIONED BY ALL
 ```
 
-## taxi_3 - Principle 3 - superfluous columns
+## Principle 3 - superfluous columns
 
 Now there's quite a few columns we don't need either logically or through conversation with our imaginary web developer. Notice that this script also checks that the types are all good on the `EXTERN`.
 
@@ -263,7 +263,7 @@ LEFT JOIN areaLookup_pickup ON "Pickup Community Area" = areaLookup_pickup.k
 PARTITIONED BY ALL
 ```
 
-## taxi_4 - Principle 4 - superfluous rows
+## Principle 4 - superfluous rows
 
 Turns out they want buckets of seconds taken - and that are only interested in trips over 5 minutes. So we apply some `WHERE` clauses to do that.
 
@@ -332,7 +332,7 @@ WHERE "Trip Seconds" > 300
 PARTITIONED BY ALL
 ```
 
-## taxi_5 - Principle 5 - granularity and precision
+## Principle 5 - granularity and precision
 
 Now we get to reduce the granularity for the intended graphical elements of the UI. We also create datasketches out of the high-cardinality columns: a) they would otherwise lower the roll-up ratio, and b) our imaginary users are fine with trend information and they're never gonna filter / sort by the Taxi Id or Trip Id.
 
@@ -406,7 +406,7 @@ GROUP BY 1, 2, 3, 4, 5, 6
 PARTITIONED BY ALL
 ```
 
-## taxi_6 - Principle 6 - Segment organization
+## Principle 6 - Segment organization
 
 Final principle, applying segment organisation.
 
