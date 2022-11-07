@@ -1,14 +1,17 @@
 # Chicago Taxi Data
 
-Contains a large volume of Taxi Data for Chicago.
+## What is it?
+
+Contains a volume of taxi data from the City of Chicago's transportation department.
 
 See https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew for the metadata.
-
-## Download
 
 Download the data set from:
 
 * https://data.cityofchicago.org/api/views/wrvz-psew/rows.csv?accessType=DOWNLOAD
+
+## Treatment
+
 
 Note that you may need to split the CSV files up using a command like this, which will create files of `-l` size out of the `splitme.csv` file.
 
@@ -34,13 +37,20 @@ done
 echo Done.
 ```
 
-## Ingesting the data
+> __NB__ The script above creates a double-header in the first CSV. Remove it in the usual way to prevent ingestion errors.
 
-### What's in the data?
+## TABLE Datasources
 
-There are two timestamps to choose from - see [Timestamps](#timestamps) below.
+### Timestamps
 
-#### Attributes
+The data contains two timestamps that you can use for `__time`:
+
+ * `Trip Start Timestamp`
+ * `Trip End Timestamp`
+
+Both are in the format `MM/dd/yyyy HH:mm:ss aa`.
+
+### Dimensions
 
 Attributes describe the taxi:
 
@@ -55,7 +65,7 @@ And the journey:
 * Dropoff Community Area
 * Pickup Community Area
 
-#### Measures
+### Measures
 
 Some measures for each trip are financial:
 
@@ -70,60 +80,11 @@ And others are about the trip itself:
 * Trip Miles
 * Trip Seconds
 
-### Timestamps
-
-The data contains a `Trip Start Timestamp` that you can use for `__time`.
-
-Alternatively, apply the RADStack paper principle that event data is "about [when the event occured](http://static.druid.io/docs/radstack.pdf)" by using the `End Timestamp` as your `__time` field value, as follows:
-
-```
-"timestampSpec": {
-        "column": "Trip End Timestamp",
-        "format": "MM/dd/yyyy HH:mm:ss aa"
-      }
-```
-
-### Dimensions
-
 Ingest all the measures as `float` - all the rest can be kept as `string`.
 
-### Transforms
+## LOOKUP Datasources
 
-As noted in [Timestamps](#timestamps) above, the dataset contains two timestamps.  Whichever you decide to use, remember to include the resulting field of your transformation as a `long` in the `dimensionsSpec`.
-
-If using the `Trip Start Timestamp` for `__time`, use the transformation below to convert the `Trip End Timestamp` into a `long`.
-
-```
-"transformSpec": {
-        "filter": null,
-        "transforms": [
-          {
-            "type": "expression",
-            "name": "__time_end_long",
-            "expression": "timestamp_parse(\"Trip End Timestamp\",'MM/dd/yyyy hh:mm:ss a')"
-          }
-        ]
-      }
-```
-
-Alternatively, use the following to do the same but to the `Trip Start Timestamp`:
-
-```
-"transformSpec": {
-        "filter": null,
-        "transforms": [
-          {
-            "type": "expression",
-            "name": "__time_start_long",
-            "expression": "timestamp_parse(\"Trip Start Timestamp\",'MM/dd/yyyy hh:mm:ss a')"
-          }
-        ]
-      }
-```
-
-It's also possible to dereference the codes in `Community Area` to actual names using the Community Area Lookup at ingestion time.
-
-Here is the `lookup` map to create in the Server lookups UI:
+Here is a `lookup` map for the community area codes.
 
 ```
 {
@@ -209,3 +170,17 @@ Here is the `lookup` map to create in the Server lookups UI:
   }
 }
 ```
+
+## Things you can do
+
+> See how this data set can be put through the Druid Data Modeling Principles on the [INSERT]("ingestion-INSERT.md") page.
+
+### Secondary Timestamps
+
+As there are two timestamps, you can apply the RADStack paper principle strictly (that Druid event data is "about [when the event occured](http://static.druid.io/docs/radstack.pdf)") by using the `Trip End Timestamp` as your `__time` field value.
+
+If you do, take care that not all rows contain an `Trip End Timestamp`, so you may require some kind of transform that will `COALESCE` with `Trip Start Timestamp` so that you always end up with a `__time` somehow.
+
+### Transforms
+
+You can use transforms to dereference community area the codes to actual names using the Community Area Lookup at ingestion time. Or, if using `INSERT`, why not try to `JOIN` to a second `EXTERN`?
