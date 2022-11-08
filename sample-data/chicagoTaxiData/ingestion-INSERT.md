@@ -433,6 +433,9 @@ In conversation with imaginary web developers, and looking at segment sizes and 
 * Partitioned by MONTH to allow for month-over-month comparisons in parallel
 * Clustered by commonly filtered dimensions
 
+> In testing, the following version completed in _one quarter_ of
+> the time that the original "starting out" version took to complete.
+
 ```
 REPLACE INTO "taxi_6_sample" OVERWRITE ALL
 
