@@ -473,7 +473,7 @@ class ElementInt(ElementBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'ElementInt(name='+self.name+', value_distribution='+sstr(elf.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'ElementInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         if random.random() < self.percent_nulls:
@@ -524,7 +524,7 @@ class ElementTimestamp(ElementBase):
                 self.cardinality.append(value)
 
     def __str__(self):
-        return 'ElementTimestamp(name='+self.name+', value_distribution='+sstr(elf.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'ElementTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         if random.random() < self.percent_nulls:
@@ -551,7 +551,7 @@ class ElementIPAddress(ElementBase):
         super().__init__(desc)
 
     def __str__(self):
-        return 'ElementIPAddress(name='+self.name+', value_distribution='+sstr(elf.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
+        return 'ElementIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
         if random.random() < self.percent_nulls:
@@ -560,6 +560,18 @@ class ElementIPAddress(ElementBase):
             value = int(self.value_distribution.get_sample())
             value =  str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
         return value
+    
+    def get_json_field_string(self):
+        if self.cardinality is None:
+            value = self.get_stochastic_value()
+        else:
+            index = int(self.cardinality_distribution.get_sample())
+            if index < 0:
+                index = 0
+            if index >= len(self.cardinality):
+                index = len(self.cardinality)-1
+            value = self.cardinality[index]
+        return '"'+self.name+'":"'+str(value)+'"'
 
 
 def parse_element(desc):
