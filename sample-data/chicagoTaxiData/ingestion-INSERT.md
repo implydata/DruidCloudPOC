@@ -1,14 +1,14 @@
-# Applying the Data Modeling Principles to the Chicago Taxi dataset
+# Chicago Taxi Data - ingesting using INSERT
 
-> Check out the principles in the [Apache Druid Ingestion and Data Modeling](https://learn.imply.io/apache-druid-ingestion-and-data-modeling) training course by Imply.
+Below you'll find sample `INSERT` statements for the Chicago Taxi Data, starting with a basic statement, and advancing through different functionality. Each change applies one of the data modelling principles from the training course by Imply.
 
-## Starting out
-
-Here's an `INSERT` statement to get us going.
+* [Apache Druid Ingestion and Data Modeling](https://learn.imply.io/apache-druid-ingestion-and-data-modeling)
 
 Note that these scripts were built for basic auth to min.io - you will need to connect to your external data in the usual way.
 
-If you've split up your data, it's a good idea to address only a few of the files at first to check that the ingestion works OK. For excample, if using S3-compatible storage, use specific `uris` in the `EXTERN` rather than the whole bucket.
+It's also a good idea to ensure you've split up the incoming data. Then you can address the `EXTERN` to a few of the files at first to check that the ingestion works OK, and to check the effect that it has on query execution and patterns. Fbelow, you will see that, because S3-compatible storage was being used, specific `uris` are used in the `EXTERN` rather than a prefix.
+
+## Starting out
 
 Note that special `COALESCE` on the `__time` – this is because the `Trip End Timestamp` is not always present, so it's necessary to deal with `NULL` values for that timestamp.
 
