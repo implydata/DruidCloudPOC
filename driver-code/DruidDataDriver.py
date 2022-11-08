@@ -352,6 +352,10 @@ class ElementNow: # The __time dimension
 class ElementEnum: # enumeration dimensions
     def __init__(self, desc):
         self.name = desc['name']
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
         self.cardinality = desc['values']
         if 'cardinality_distribution' not in desc.keys():
             print('Element '+self.name+' specifies a cardinality without a cardinality distribution')
@@ -362,12 +366,16 @@ class ElementEnum: # enumeration dimensions
         return 'ElementEnum(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        index = int(self.cardinality_distribution.get_sample())
-        if index < 0:
-            index = 0
-        if index >= len(self.cardinality):
-            index = len(self.cardinality)-1
-        return self.cardinality[index]
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            index = int(self.cardinality_distribution.get_sample())
+            if index < 0:
+                index = 0
+            if index >= len(self.cardinality):
+                index = len(self.cardinality)-1
+            value = self.cardinality[index]
+        return value
 
     def get_json_field_string(self):
         return '"'+self.name+'":"'+str(self.get_stochastic_value())+'"'
@@ -388,6 +396,10 @@ class ElementVariable: # Variable dimensions
 class ElementBase: # Base class for the remainder of the dimensions
     def __init__(self, desc):
         self.name = desc['name']
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
         cardinality = desc['cardinality']
         if cardinality == 0:
             self.cardinality = None
@@ -405,6 +417,7 @@ class ElementBase: # Base class for the remainder of the dimensions
                     if value not in self.cardinality:
                         break
                 self.cardinality.append(value)
+
 
     def get_stochastic_value(self):
         pass
@@ -435,8 +448,12 @@ class ElementString(ElementBase):
         return 'ElementString(name='+self.name+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+', chars='+self.chars+')'
 
     def get_stochastic_value(self):
-        length = int(self.length_distribution.get_sample())
-        return ''.join(random.choices(list(self.chars), k=length))
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            length = int(self.length_distribution.get_sample())
+            value = ''.join(random.choices(list(self.chars), k=length))
+        return value
 
     def get_json_field_string(self):
         if self.cardinality is None:
@@ -459,7 +476,11 @@ class ElementInt(ElementBase):
         return 'ElementInt(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return int(self.value_distribution.get_sample())
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            value = int(self.value_distribution.get_sample())
+        return value
 
 class ElementFloat(ElementBase):
     def __init__(self, desc):
@@ -470,12 +491,20 @@ class ElementFloat(ElementBase):
         return 'ElementFloat(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return float(self.value_distribution.get_sample())
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            value = float(self.value_distribution.get_sample())
+        return value
 
 class ElementTimestamp(ElementBase):
     def __init__(self, desc):
         self.name = desc['name']
         self.value_distribution = parse_timestamp_distribution(desc['distribution'])
+        if 'percent_nulls' in desc.keys():
+            self.percent_nulls = desc['percent_nulls'] / 100.0
+        else:
+            self.percent_nulls = 0.0
         cardinality = desc['cardinality']
         if cardinality == 0:
             self.cardinality = None
@@ -498,7 +527,11 @@ class ElementTimestamp(ElementBase):
         return 'ElementTimestamp(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        return datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            value = datetime.fromtimestamp(self.value_distribution.get_sample()).isoformat()
+        return value
 
     def get_json_field_string(self):
         if self.cardinality is None:
@@ -521,8 +554,12 @@ class ElementIPAddress(ElementBase):
         return 'ElementIPAddress(name='+self.name+', value_distribution='+str(self.value_distribution)+', cardinality='+str(self.cardinality)+', cardinality_distribution='+str(self.cardinality_distribution)+')'
 
     def get_stochastic_value(self):
-        value = int(self.value_distribution.get_sample())
-        return str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
+        if random.random() < self.percent_nulls:
+            value = 'null'
+        else:
+            value = int(self.value_distribution.get_sample())
+            value =  str((value & 0xFF000000) >> 24)+'.'+str((value & 0x00FF0000) >> 16)+'.'+str((value & 0x0000FF00) >> 8)+'.'+str(value & 0x000000FF)
+        return value
     
     def get_json_field_string(self):
         if self.cardinality is None:
