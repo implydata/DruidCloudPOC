@@ -173,17 +173,3 @@ Here is a `lookup` map for the community area codes.
   }
 }
 ```
-
-## Things you can do
-
-> See how this data set can be put through the Druid Data Modeling Principles on the [INSERT](./ingestion-INSERT.md) page.
-
-### Secondary Timestamps
-
-As there are two timestamps, you can apply the RADStack paper principle strictly (that Druid event data is "about [when the event occured](http://static.druid.io/docs/radstack.pdf)") by using the `Trip End Timestamp` as your `__time` field value.
-
-If you do, take care that not all rows contain an `Trip End Timestamp`, so you may require some kind of transform that will `COALESCE` with `Trip Start Timestamp` so that you always end up with a `__time` somehow.
-
-### Transforms
-
-You can use transforms to dereference community area the codes to actual names using the Community Area Lookup at ingestion time. Or, if using `INSERT`, why not try to `JOIN` to a second `EXTERN`?
