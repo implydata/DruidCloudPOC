@@ -6,7 +6,7 @@ Below you'll find sample `INSERT` statements for the Chicago Taxi Data, starting
 
 Note that these scripts were built for basic auth to min.io - you will need to connect to your external data in the usual way.
 
-It's also a good idea to ensure you've split up the incoming data. Then you can address the `EXTERN` to a few of the files at first to check that the ingestion works OK, and to check the effect that it has on query execution and patterns. Fbelow, you will see that, because S3-compatible storage was being used, specific `uris` are used in the `EXTERN` rather than a prefix.
+It's also a good idea to ensure you've split up the incoming data. Then you can address the `EXTERN` to a few of the files at first to check that the ingestion works OK, and to check the effect that it has on query execution and patterns. Below, you will see that, because S3-compatible storage was being used, specific `uris` are used in the `EXTERN` rather than a prefix.
 
 ## Starting out
 
