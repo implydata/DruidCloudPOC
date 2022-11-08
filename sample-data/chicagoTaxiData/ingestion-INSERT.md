@@ -10,7 +10,7 @@ It's also a good idea to ensure you've split up the incoming data. Then you can 
 
 ## Starting out
 
-Note that special `COALESCE` on the `__time` – this is because the `Trip End Timestamp` is not always present, so it's necessary to deal with `NULL` values for that timestamp.
+The dataset has two timestamps, so here we apply the [RADStack paper](http://static.druid.io/docs/radstack.pdf) principle strictly that event rows are "about when the event occured" by using the Trip End Timestamp as the __time field value. This requires a `COALESCE` on the `__time` because the `Trip End Timestamp` is not always present; we need to deal with the potential for `NULL` values.
 
 ```
 REPLACE INTO "taxi_0_sample" OVERWRITE ALL
