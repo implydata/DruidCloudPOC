@@ -1,7 +1,8 @@
 # Chicago Taxi Data
 
 * [What is it?](#what-is-it)
-* [Ingestion](ingestion-INSERT.md)
+* Ingestion
+  * [INSERT](ingestion-INSERT.md)
 
 ## What is it?
 
